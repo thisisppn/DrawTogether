@@ -18,9 +18,8 @@ import com.github.nkzawa.socketio.client.IO;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.net.URISyntaxException;
-import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MainDrawingView extends View {
@@ -53,7 +52,7 @@ public class MainDrawingView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        for (String key: pathMap.keySet()) {
+        for (String key : pathMap.keySet()) {
             Path sockPath = pathMap.get(key);
             canvas.drawPath(sockPath, paint);
         }
@@ -70,12 +69,12 @@ public class MainDrawingView extends View {
                 // Set a new starting point
                 path.moveTo(eventX, eventY);
 //                mSocket.emit("touch", "{"+eventX+", "+eventY+"}");
-                mSocket.emit("touch", eventX,eventY);
+                mSocket.emit("touch", eventX, eventY);
                 return true;
             case MotionEvent.ACTION_MOVE:
                 // Connect the points
                 path.lineTo(eventX, eventY);
-                mSocket.emit("move", eventX,eventY);
+                mSocket.emit("move", eventX, eventY);
                 break;
             default:
                 return false;
@@ -90,21 +89,40 @@ public class MainDrawingView extends View {
     public Emitter.Listener onConnectEvent = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            ((Activity)getContext()).runOnUiThread(new Runnable() {
+            ((Activity) getContext()).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
 
                     JSONObject data = (JSONObject) args[0];
                     String id = null;
-                    JSONArray ids = null;
+                    String ids = null;
 
                     try {
                         id = data.getString("id");
-                        ids = data.getJSONArray("ids");
+                        ids = data.getString("ids");
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
 
+                    System.out.println(ids);
+
+                    if (ids != null) {
+                        JSONArray connectedIds = null;
+                        try {
+                            connectedIds = new JSONArray(ids);
+                            for (int i = 0; i < connectedIds.length(); i++) {
+                                try {
+                                    String connectedId = connectedIds.getString(i);
+                                    Log.v("Already connected", connectedId);
+                                    pathMap.put(connectedId, new Path());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
 
                     Path tempPath = new Path();
@@ -125,7 +143,7 @@ public class MainDrawingView extends View {
     public Emitter.Listener onTouchEvent = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            ((Activity)getContext()).runOnUiThread(new Runnable() {
+            ((Activity) getContext()).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     //Code for the UiThread
@@ -140,11 +158,12 @@ public class MainDrawingView extends View {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    Log.v("Touch", x+", "+y);
+                    Log.v("Touch", x + ", " + y);
+                    Log.v("Touch from id", id);
                     float touchX = Float.parseFloat(x);
                     float touchY = Float.parseFloat(y);
                     Path sockPath = pathMap.get(id);
-                    sockPath.moveTo(touchX + 200, touchY + 200);
+                    sockPath.moveTo(touchX, touchY);
 //                    path.moveTo(touchX + 200, touchY + 200);
                     invalidate();
                 }
@@ -155,7 +174,7 @@ public class MainDrawingView extends View {
     public Emitter.Listener onMoveEvent = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            ((Activity)getContext()).runOnUiThread(new Runnable() {
+            ((Activity) getContext()).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
@@ -169,11 +188,12 @@ public class MainDrawingView extends View {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    Log.v("Move", x+", "+y);
+                    Log.v("Move", x + ", " + y);
                     float touchX = Float.parseFloat(x);
                     float touchY = Float.parseFloat(y);
                     Path sockPath = pathMap.get(id);
-                    sockPath.moveTo(touchX + 200, touchY + 200);
+                    System.out.println(sockPath);
+                    sockPath.lineTo(touchX, touchY);
 //                    path.lineTo(touchX+200, touchY+200);
                     invalidate();
                 }
